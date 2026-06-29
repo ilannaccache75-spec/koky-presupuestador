@@ -17,6 +17,22 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Login ────────────────────────────────────────────────────────────────────
+def _check_password():
+    if st.session_state.get("autenticado"):
+        return
+    st.title("🔐 Presupuestador Koky")
+    pwd = st.text_input("Contraseña", type="password")
+    if st.button("Entrar"):
+        if pwd == st.secrets.get("password", ""):
+            st.session_state.autenticado = True
+            st.rerun()
+        else:
+            st.error("Contraseña incorrecta")
+    st.stop()
+
+_check_password()
+
 CONFIG_PATH = Path(__file__).parent / "config.json"
 COUNTER_PATH = Path(__file__).parent / "contador.json"
 
