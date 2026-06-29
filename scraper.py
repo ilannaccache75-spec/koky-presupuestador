@@ -267,33 +267,29 @@ def buscar_productos(query: str, categoria: str = "", limit: int = 100):
 
 
 def importar_json(datos: list[dict]) -> int:
-    """Importa una lista de productos desde JSON (descargado con el script de Chrome)."""
+    """Actualiza precios desde JSON. Solo modifica productos existentes por SKU."""
     conn = init_db()
     now  = datetime.now().isoformat(timespec="seconds")
     cur  = conn.cursor()
-    insertados = 0
+    actualizados = 0
     for p in datos:
         precio_val = p.get("precio")
         if isinstance(precio_val, str):
             precio_val = parse_precio(precio_val)
-        cur.execute("""
-            INSERT OR REPLACE INTO productos
-                (id, sku, nombre, precio, categoria, url, actualizado)
-            VALUES (?,?,?,?,?,?,?)
-        """, (
-            str(p.get("id", "")),
-            p.get("sku"),
-            p.get("nombre", ""),
-            precio_val,
-            (p.get("categoria") or "").lower(),
-            p.get("url"),
-            now,
-        ))
-        insertados += 1
+        sku = p.get("sku")
+        if not sku:
+            continue
+        rows = cur.execute("SELECT id FROM productos WHERE sku = ?", (sku,)).fetchall()
+        for (prod_id,) in rows:
+            cur.execute(
+                "UPDATE productos SET precio=?, url=?, actualizado=? WHERE id=?",
+                (precio_val, p.get("url"), now, prod_id),
+            )
+            actualizados += 1
     conn.execute("INSERT OR REPLACE INTO ultima_actualizacion (id, fecha) VALUES (1, ?)", (now,))
     conn.commit()
     conn.close()
-    return insertados
+    return actualizados
 
 
 def ultima_actualizacion() -> str:

@@ -73,15 +73,6 @@ def importar(excel_path: str, descuento_pct: float = DESCUENTO, callback=None) -
                 (nombre, precio, categoria, now, sku),
             )
             actualizados += 1
-        else:
-            prod_id = sku if sku else nombre[:30]
-            conn.execute(
-                """INSERT OR REPLACE INTO productos
-                       (id, sku, nombre, precio, categoria, url, actualizado)
-                   VALUES (?,?,?,?,?,?,?)""",
-                (prod_id, sku or None, nombre, precio, categoria, None, now),
-            )
-            insertados += 1
 
         if (actualizados + insertados) % 1000 == 0:
             log(f"  {actualizados + insertados} procesados...")

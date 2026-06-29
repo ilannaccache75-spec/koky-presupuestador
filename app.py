@@ -121,8 +121,8 @@ with st.sidebar:
     st.title("⚙️ Configuración")
 
     cfg["empresa"] = st.text_input("Nombre de tu empresa", value=cfg["empresa"])
-    cfg["markup_default"] = st.slider(
-        "Ganancia por defecto (%)", min_value=0, max_value=200,
+    cfg["markup_default"] = st.number_input(
+        "Ganancia por defecto (%)", min_value=0, max_value=500,
         value=int(cfg["markup_default"]), step=1,
     )
 
@@ -516,7 +516,30 @@ with tab_actualizar:
                 st.error(f"Error al importar: {e}")
 
     st.divider()
-    st.markdown("### Opción 2 — Actualización automática (precio estándar)")
+    st.markdown("### Opción 2 — Importar Excel de Papelera Bariloche")
+    st.caption("Descargá el Excel desde papelerabariloche.com.ar y subilo acá. Aplica el 4% de descuento de cuenta.")
+    excel_file = st.file_uploader("📂 Subir lista-precios.xlsx", type=["xlsx"], key="excel_uploader")
+    if excel_file:
+        if st.button("⬆️ Importar Excel", type="primary"):
+            try:
+                import tempfile
+                from importar_excel import importar
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+                    tmp.write(excel_file.read())
+                    tmp_path = tmp.name
+                logs_xl: list[str] = []
+                log_area_xl = st.empty()
+                def cb_xl(msg):
+                    logs_xl.append(msg)
+                    log_area_xl.code("\n".join(logs_xl[-20:]), language=None)
+                resultado = importar(tmp_path, callback=cb_xl)
+                st.success(f"✅ Actualizados: {resultado['actualizados']:,} | Sin precio: {resultado['sin_precio']:,}")
+                st.balloons()
+            except Exception as e:
+                st.error(f"Error al importar Excel: {e}")
+
+    st.divider()
+    st.markdown("### Opción 3 — Actualización automática (precio estándar)")
     st.caption("Esta opción usa el precio base del listado, sin considerar descuentos por cantidad.")
 
     if not cfg.get("email") or not cfg.get("password"):
