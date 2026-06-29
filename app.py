@@ -394,9 +394,14 @@ with tab_carrito:
                         iva_modo   = iva_modo,
                     )
                 st.success(f"✅ Presupuesto N°{numero:05d} generado.")
-                st.info(f"📁 Guardado en:\n`{archivo}`")
-                if st.button("📂 Abrir carpeta", key="open_folder"):
-                    os.startfile(str(archivo.parent))
+                with open(archivo, "rb") as f:
+                    st.download_button(
+                        label="⬇️ Descargar PDF" if formato == "pdf" else "⬇️ Descargar Excel",
+                        data=f.read(),
+                        file_name=archivo.name,
+                        mime="application/pdf" if formato == "pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key=f"dl_{numero}_{formato}",
+                    )
             except Exception as e:
                 st.error(f"Error al generar: {e}")
 
