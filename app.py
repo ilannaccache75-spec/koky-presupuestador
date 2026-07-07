@@ -24,7 +24,12 @@ def _check_password():
     st.title("🔐 Presupuestador Koky")
     pwd = st.text_input("Contraseña", type="password")
     if st.button("Entrar"):
-        if pwd == st.secrets.get("password", ""):
+        try:
+            real_pwd = st.secrets.get("password", "")
+        except Exception:
+            real_pwd = ""
+        real_pwd = real_pwd or os.environ.get("APP_PASSWORD", "")
+        if pwd == real_pwd:
             st.session_state.autenticado = True
             st.rerun()
         else:
