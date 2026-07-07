@@ -36,8 +36,54 @@ def init_db():
             fecha TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS contador (
+            id    INTEGER PRIMARY KEY CHECK (id = 1),
+            ultimo INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+    conn.execute("INSERT OR IGNORE INTO contador (id, ultimo) VALUES (1, 0)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS historial (
+            numero  INTEGER PRIMARY KEY,
+            cliente TEXT,
+            fecha   TEXT,
+            total   REAL,
+            iva     TEXT,
+            items   TEXT
+        )
+    """)
     conn.commit()
     return conn
+
+
+def get_next_numero() -> int:
+    conn = init_db()
+    conn.execute("UPDATE contador SET ultimo = ultimo + 1 WHERE id = 1")
+    conn.commit()
+    n = conn.execute("SELECT ultimo FROM contador WHERE id = 1").fetchone()[0]
+    conn.close()
+    return n
+
+
+def guardar_presupuesto(numero: int, cliente: str, total: float, iva: str, items: list):
+    conn = init_db()
+    import json
+    conn.execute(
+        "INSERT OR REPLACE INTO historial (numero, cliente, fecha, total, iva, items) VALUES (?,?,?,?,?,?)",
+        (numero, cliente, datetime.now().isoformat(timespec="seconds"), total, iva, json.dumps(items, ensure_ascii=False))
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_historial(limit: int = 50) -> list:
+    conn = init_db()
+    rows = conn.execute(
+        "SELECT numero, cliente, fecha, total, iva FROM historial ORDER BY numero DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return [{"numero": r[0], "cliente": r[1], "fecha": r[2], "total": r[3], "iva": r[4]} for r in rows]
 
 
 def parse_precio(texto: str) -> float | None:

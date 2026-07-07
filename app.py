@@ -34,7 +34,6 @@ def _check_password():
 _check_password()
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
-COUNTER_PATH = Path(__file__).parent / "contador.json"
 
 
 # ── Helpers de persistencia ──────────────────────────────────────────────────
@@ -50,16 +49,6 @@ def load_config() -> dict:
 
 def save_config(cfg: dict):
     CONFIG_PATH.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def next_numero() -> int:
-    if COUNTER_PATH.exists():
-        data = json.loads(COUNTER_PATH.read_text())
-        n = data.get("ultimo", 0) + 1
-    else:
-        n = 1
-    COUNTER_PATH.write_text(json.dumps({"ultimo": n}))
-    return n
 
 
 # ── CSS personalizado ────────────────────────────────────────────────────────
@@ -164,9 +153,10 @@ with st.sidebar:
 # ════════════════════════════════════════════════════════════════════════════
 # TABS PRINCIPALES
 # ════════════════════════════════════════════════════════════════════════════
-tab_buscar, tab_carrito, tab_actualizar = st.tabs([
+tab_buscar, tab_carrito, tab_historial, tab_actualizar = st.tabs([
     "🔍 Buscar productos",
     f"🛒 Presupuesto ({len(st.session_state.carrito)})",
+    "📋 Historial",
     "🔄 Actualizar precios",
 ])
 
@@ -364,7 +354,8 @@ with tab_carrito:
                 st.error("Ingresá el nombre del cliente.")
                 return
             try:
-                numero = next_numero()
+                from scraper import get_next_numero, guardar_presupuesto
+                numero = get_next_numero()
                 items_export = [
                     {**it, "markup": it.get("markup", markup_global)}
                     for it in st.session_state.carrito
@@ -393,6 +384,7 @@ with tab_carrito:
                         notas      = notas,
                         iva_modo   = iva_modo,
                     )
+                guardar_presupuesto(numero, cliente.strip(), total_presup, iva_modo, items_export)
                 st.success(f"✅ Presupuesto N°{numero:05d} generado.")
                 with open(archivo, "rb") as f:
                     st.download_button(
@@ -418,7 +410,29 @@ with tab_carrito:
 
 
 # ────────────────────────────────────────────────────────────────────────────
-# TAB 3 — Actualizar precios
+# TAB 3 — Historial
+# ────────────────────────────────────────────────────────────────────────────
+with tab_historial:
+    st.subheader("📋 Historial de presupuestos")
+    try:
+        from scraper import get_historial
+        registros = get_historial(100)
+        if not registros:
+            st.info("Todavía no hay presupuestos generados.")
+        else:
+            st.caption(f"{len(registros)} presupuesto(s) registrados")
+            for r in registros:
+                c1, c2, c3, c4 = st.columns([1, 3, 3, 2])
+                c1.markdown(f"**N°{r['numero']:05d}**")
+                c2.markdown(r["cliente"])
+                c3.markdown(r["fecha"][:16].replace("T", " "))
+                c4.markdown(f"$ {r['total']:,.0f}")
+    except Exception as e:
+        st.error(f"Error al cargar historial: {e}")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# TAB 4 — Actualizar precios
 # ────────────────────────────────────────────────────────────────────────────
 with tab_actualizar:
     st.subheader("🔄 Actualizar base de precios")
