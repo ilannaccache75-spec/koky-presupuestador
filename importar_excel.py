@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "productos.db"
+from db_path import DB_PATH
 DESCUENTO = 0.04  # descuento de cuenta Koky
 
 

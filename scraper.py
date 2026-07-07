@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "productos.db"
+from db_path import DB_PATH
 BASE_URL = "https://www.papelerabariloche.com.ar"
 
 CATEGORIAS = [
